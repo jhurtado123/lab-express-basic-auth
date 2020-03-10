@@ -1,0 +1,43 @@
+<h1>Chat</h1> <h2>{{currentUser.username}}</h2>
+ {{currentUser._id}}
+<p> Room id {{roomId}}</p>
+<div id="chat">
+    <div id="chat-window">
+        <div id="output">
+            {{#each messages}}
+                <p class="{{#ifeq this.sender ../currentUser._id }}mine{{/ifeq}}">{{this.message}} </p>
+            {{/each}}
+        </div>
+        <div id="actions"></div>
+    </div>
+    <input type="text" id="message" placeholder="Message">
+    <button id="send" data-id="{{currentUser._id}}" data-name="{{currentUser.username}}">Send</button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const socket = io();
+
+        const message = document.querySelector('#message');
+        const output = document.querySelector('#output');
+        const send = document.querySelector('#send');
+        const actions = document.querySelector('#actions');
+
+        send.addEventListener('click', () => {
+          output.innerHTML += `<p class='mine'>${message.value}</p>`;
+            socket.emit('chat:message', {
+                message: message.value,
+                userId: send.getAttribute('data-id'),
+                userName: send.getAttribute('data-name'),
+                room: '{{roomId}}'
+            })
+        });
+
+        socket.emit('room:join', '{{roomId}}');
+
+        socket.on('chat:message',function (data) {
+          output.innerHTML += `<p class='other'>${data.message}</p>`;
+        });
+
+    });
+</script>

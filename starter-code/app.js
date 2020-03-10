@@ -11,7 +11,6 @@ const path         = require('path');
 const session    = require("express-session");
 const MongoStore = require("connect-mongo")(session);
 
-
 mongoose
   .connect('mongodb://localhost/starter-code', {useNewUrlParser: true})
   .then(x => {
@@ -24,7 +23,8 @@ mongoose
 const app_name = require('./package.json').name;
 const debug = require('debug')(`${app_name}:${path.basename(__filename).split('.')[0]}`);
 
-const app = express();
+const app = module.exports = express();
+app.io = require('socket.io')();
 
 // Middleware Setup
 app.use(logger('dev'));
@@ -36,7 +36,7 @@ app.use(cookieParser());
 
 app.use(session({
   secret: "basic-auth-secret",
-  cookie: { maxAge: 60 * 1000 }, // 60 seconds
+  cookie: { maxAge: 60 * 10000 }, // 60 seconds
   store: new MongoStore({
     mongooseConnection: mongoose.connection,
     resave: true,
@@ -57,6 +57,21 @@ app.set('view engine', 'hbs');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(favicon(path.join(__dirname, 'public', 'images', 'favicon.ico')));
 
+hbs.registerHelper('ifeq', function(lvalue, rvalue, options) {
+  if (arguments.length < 3)
+    throw new Error("Handlebars Helper equal needs 2 parameters");
+  if( lvalue!=rvalue ) {
+    return options.inverse(this);
+  } else {
+    return options.fn(this);
+  }
+});
+
+
+hbs.registerHelper('ifnoteq', function (a, b, options) {
+  if (a != b) { return options.fn(this); }
+  return options.inverse(this);
+});
 
 
 // default value for title local
@@ -65,7 +80,10 @@ app.locals.title = 'Express - Generated with IronGenerator';
 
 
 const index = require('./routes/index');
+const chat = require('./routes/chat');
+
 app.use('/', index);
+app.use('/chat', chat);
 
 
 module.exports = app;
